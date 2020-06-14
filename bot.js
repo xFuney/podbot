@@ -17,7 +17,7 @@ client.on('ready', () => {
     console.log(`[iPod] [BOTCODE] Bot has connected to Discord, and is currently logged in as ${client.user.tag}!`);
     
     SYS_FN_LOG("[NET] Bot connected to Discord, setting activity status.")
-    client.user.setActivity('[DEV BUILD] over the iPod Discord...', { type: 'WATCHING' });
+    client.user.setActivity('over the iPod Discord...', { type: 'WATCHING' });
 });
 
 client.on('message', msg => {
