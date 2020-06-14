@@ -1,7 +1,7 @@
 var CMD_DATA = [
     {
-        "version": "1.1",
-        "state": "debug"
+        "version": "1.2",
+        "state": "release"
     }
 ]
 
@@ -306,7 +306,7 @@ var commands = [
                     SYS_FN_LOG("[DEV] [DEBUG] System has been called for reboot by user " + message.author.tag + ".")
                     SYS_FN_REBOOT("Forced reboot called by user " + message.author.tag + ".")
                 } else {
-                    message.channel.send("**DEBUG STUFF** \n*reload_cmd - reload the command database*\n*shutdown - shutdown bot*")
+                    message.channel.send("**DEBUG STUFF** \n*reload_cmd - reload the command database*\n*shutdown - shutdown bot*\n*reboot - restart bot*\n\nAll commands must be run using ==dev--debug <arguments>.")
                 }
             }
         }
