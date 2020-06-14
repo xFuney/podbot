@@ -274,7 +274,7 @@ var commands = [
         "callback": function (message, args) {
             if (message.author.id == 490609510734364692) {
                 // funey
-                var outputmsg = '```\n------------------------------------------------\nDEVELOPER INFORMATION\n\n((( COMMAND DATABASE )))\nVersion: ' + CMD_DATA[0].version + '\nState: ' + CMD_DATA[0].state + '\n\n((( BOTCODE )))\nVersion: ' + BOT_DATA[0].version + '\nState: ' + BOT_DATA[0].state + '\n\n------------------------------------------------```'
+                var outputmsg = '```\n------------------------------------------------\nDEVELOPER INFORMATION\n\n((( COMMAND DATABASE )))\nVersion: ' + CMD_DATA[0].version + '\nState: ' + CMD_DATA[0].state + '\n\n------------------------------------------------```'
                 message.channel.send(outputmsg)                
             }
         }
