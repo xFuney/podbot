@@ -147,34 +147,6 @@ const opts = {
     key: KEY_YT,
 }
 
-// Initialising event handler for when program is exited.
-process.on("exit", (code) => {
-    // Program has been exited, check if not code 99 - otherwise restart.
-    SYS_FN_LOG("[PWR] Program exit event fired, checking if this is a reboot/shutdown event...")
-    if (code != 99) {
-        // Restart.
-        SYS_FN_LOG("[PWR] This is a restart event, restarting now.")
-        var restartChild = require("child_process").spawn(process.argv.shift(), process.argv, {
-            cwd: process.cwd(),
-            detached : false,
-            stdio: "pipe"
-        });
-        
-        restartChild.on("data", (data) => {
-            // pipe through data
-            console.log(data);
-        })
-
-        while ( 1 == 1) {
-            // JANKY LOOP, PROBABLY WILL CAUSE A MEMORY LEAK.
-            // DO MONITOR.
-        }
-
-    } else {
-        SYS_FN_LOG("[PWR] Exit event, exiting program with code " + code + ".")
-    }
-})
-
 // Initialise shutdown/reboot scripting.
 SYS_FN_LOG("Declaring shutdown and reboot functions.")
 
