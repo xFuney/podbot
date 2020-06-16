@@ -85,6 +85,8 @@ const client = new Discord.Client();
 const ytdl = require("ytdl-core");
 const https = require('https');
 var search = require("youtube-search-promise");
+const SQLite = require("better-sqlite3");
+const sql = new SQLite('./master.db');
 
 // Embed array
 
@@ -110,7 +112,7 @@ const constantEmbeds = [
 	    .setAuthor('You were banned from {server_name} automatically.', BOT_CONFIG.botImage)
 	    .setDescription("Reason for being banned: **Spamming**\nYou are not allowed to rejoin and are advised to submit an appeal if you think you have done nothing wrong.")
 	    .setTimestamp()
-	    .setFooter('Brought to you by ' + BOT_CONFIG.botName)
+        .setFooter('Brought to you by ' + BOT_CONFIG.botName)
       
 ]
 
@@ -196,6 +198,61 @@ function SYS_FN_OUTERR(state, message, errorTitle, errorDescription) {
 
 // Initialise command database in preparation for handoff.
 SYS_FN_LOG("Getting command database from bot CDN and evaluating in preparation for handoff.")
+
+
+
+
+
+
+// Initialise commands for getting data from database.
+function hasPermission(guildID, messageObject, permissionLevel) {
+    if (permissionLevel == "1") {
+        console.log("Checking of moderator")
+        var sqlCode = `SELECT moderatorRoleID FROM ipod_` + guildID + `_config`
+    } else if (permissionLevel == "2") {
+        console.log("checking of admin")
+        var sqlCode = `SELECT adminRoleID FROM ipod_` + guildID + `_config`
+    }
+
+    var permexec = sql.prepare(sqlCode)
+    var permrun = permexec.get()
+
+    console.log(permrun)
+
+    if (permissionLevel == "1") {
+        return messageObject.member.roles.cache.some(role => parseInt(role.id) === permrun.moderatorRoleID)  
+    } else if (permissionLevel == "2") {
+        return messageObject.member.roles.cache.some(role => parseInt(role.id) === permrun.adminRoleID)
+    }
+
+/*
+    var FIN_STT;
+    //console.log(messageObject.member.roles.cache)
+    db.get(sqlCode, [], (err, row) => {
+        if (err) { throw err; }
+    }, function() {
+        //if (err) { throw err; }
+        if (permissionLevel == 1) {
+            checkID = row.moderatorRoleID
+        } else if (permissionLevel == 2) {
+            checkID = row.adminRoleID
+        }
+
+        console.log(checkID)
+        console.log("has perms lvl " + permissionLevel + "? " + messageObject.member.roles.cache.some(role => parseInt(role.id) === checkID))
+        
+        console.log(messageObject.member.roles.cache.some(role => parseInt(role.id) === checkID) == true)
+        if (messageObject.member.roles.cache.some(role => parseInt(role.id) === checkID) == true) {
+            // YES TRUE
+            FIN_STT = true
+        } else {
+            FIN_STT = false
+        }
+    });
+    console.log("FIN STT" + FIN_STT)
+    return FIN_STT;
+    */
+}
 
 // Lets initiate things for music-playing here, as it appears that the new CDN system doesn't like that.
 
@@ -339,6 +396,70 @@ async function playMusic(message, args, serverQueue, results) {
     }
 }
 
+warnlist = "";
+
+function getwarn(message) {
+
+    warnlist = "";
+
+    const row = sql.prepare(`SELECT warnerID,reason FROM ipod_`+message.guild.id+`_warns WHERE userID=`+message.mentions.users.first().id);
+
+    for (const test of row.iterate()) {
+        warnlist = warnlist + "**Warned by " + test.warnerID + "** - " + test.reason + "\n";
+    }
+
+    console.log(warnlist)
+
+    var okEmbed = new Discord.MessageEmbed()
+        .setColor('00ff00')
+        .setTitle('Warns for user ' + message.mentions.users.first().tag + ":")
+        .setDescription(warnlist)
+        .setAuthor('Got warns.', BOT_CONFIG.botImage)
+        .setTimestamp()
+        .setFooter('Brought to you by ' + BOT_CONFIG.botName);
+
+    message.channel.send(okEmbed);
+    /*
+    db.run(`SELECT warnerID,reason FROM ipod_`+message.guild.id+`_warns WHERE userID=`+message.mentions.users.first().id, function(err, results) {
+        if (err) {
+          return console.log(err.message);
+        }
+        // get the last insert id
+        //console.log(`A row has been inserted with rowid ${this.lastID}`);
+        warnlist = warnlist + "**Warned by " + row[0] + "** - *" + row[1] + "* \n";
+        //return warnlist;
+      }, function(results) {
+        console.log(results)
+
+
+      });
+      */
+}
+
+function userwarn(message, reason) {
+    var statement = sql.prepare(`INSERT INTO ipod_` + message.guild.id + `_warns(userID, warnerID, reason) VALUES(?,?,?)`)
+    var executed = statement.run(message.mentions.users.first().id, message.author.id, reason)
+
+    var warnEmbed = new Discord.MessageEmbed()
+	        .setColor('ff0000')
+	        .setTitle("Notice of manual punishment")
+	        .setAuthor('You were warned in ' + message.guild.name + ' by ' + message.author.tag + '.', BOT_CONFIG.botImage)
+	        .setDescription("Reason for warn: **"+ reason +"** \n\nBe careful, as ammassing a large amount of warns may result in being kicked or banned from the server.")
+	        .setTimestamp()
+            .setFooter('Brought to you by ' + BOT_CONFIG.botName);
+
+        var okEmbed = new Discord.MessageEmbed()
+	        .setColor('00ff00')
+	        .setTitle('User ' + message.mentions.users.first().tag + ' warned successfully.')
+	        .setAuthor('Success', BOT_CONFIG.botImage)
+	        .setTimestamp()
+            .setFooter('Brought to you by ' + BOT_CONFIG.botName);
+
+        message.mentions.users.first().send(warnEmbed)
+        message.channel.send(okEmbed);
+
+}
+
 function play(guild, song) {
     // This function plays the song for the specific guild.
     // Get the queue for the guild we're playing for.
@@ -422,6 +543,7 @@ var commands = [
     {
         "command": "ping",
         "prettyName": "ping",
+        "category": 4,
         "desc": "Returns a response when " + BOT_CONFIG.botName + " receives the command.",
         "callback": function (message, Arguments) {
             message.reply("This is a responce, therefore the command was received.")
@@ -429,19 +551,53 @@ var commands = [
     },
 	{
 		"command": "help",
-		"prettyName": "help",
+        "prettyName": "help",
+        "category": 4,
 		"aliases": ["h"],
 		"desc": "Returns helpful information about " + BOT_CONFIG.botName,
 		"callback": function(MesgElement, Args) {
+            if (!Args[1]) {
+                // No argument specified, list categories.
+                const exampleEmbed = new Discord.MessageEmbed()
+	                .setColor('7289da')
+                    .setAuthor(BOT_CONFIG.botName + ' List of Command Categories', BOT_CONFIG.botImage)
+                    .setTimestamp()
+	                .setFooter('Brought to you by ' + BOT_CONFIG.botName);
+            
+		        for (i = 0; i < categories.length; i++) {
+			        exampleEmbed.addField(categories[i].prettyName + " (" + categories[i].name + ")", categories[i].desc, false)
+                }
+                
+                MesgElement.channel.send(exampleEmbed)
+                return;
+            }
+
+            found = false
+            foundNumber = 0
+
+            for (i=0; i<categories.length; i++) {
+                if (categories[i].name == Args[1]) {
+                    found = categories[i].prettyName
+                    foundNumber = i
+                }
+            }
+
+            if (found === false) {
+                MesgElement.channel.send("not found")
+                return;
+            }
+
 		    const exampleEmbed = new Discord.MessageEmbed()
 	            .setColor('7289da')
-	            .setAuthor(BOT_CONFIG.botName + ' Commands', BOT_CONFIG.botImage)
+	            .setAuthor(BOT_CONFIG.botName + ' Commands in Category ' + found, BOT_CONFIG.botImage)
                 .setTimestamp()
 	            .setFooter('Brought to you by ' + BOT_CONFIG.botName);
-
-		    for (i = 1; i < commands.length; i++) {
-			    exampleEmbed.addField(BOT_CONFIG.prefix + commands[i].prettyName, commands[i].desc, false)
-		    }
+            
+		    for (i = 0; i < commands.length; i++) {
+                if (commands[i].category == foundNumber) {
+			        exampleEmbed.addField(BOT_CONFIG.prefix + commands[i].prettyName, commands[i].desc, false)
+                }
+            }
 
       
 			MesgElement.channel.send(exampleEmbed)
@@ -450,6 +606,7 @@ var commands = [
     {
         "command": "skip",
         "prettyName": "skip",
+        "category": 0,
         "aliases": ["s"],
         "desc": "Skip a music track, you must have DJ role in order to do this.",
         "callback": async function (message, args, serverQueue) {
@@ -498,6 +655,7 @@ var commands = [
     {
         "command": "disconnect",
         "prettyName": "disconnect",
+        "category": 0,
         "aliases": ["leave"],
         "desc": "Disconnects the bot from the voice channel.",
         "callback": async function (message, args, serverQueue) {
@@ -535,6 +693,7 @@ var commands = [
     {
         "command": "queue",
         "prettyName": "queue",
+        "category": 0,
         "aliases": ["q"],
         "desc": "Get a list of the current queue of music to be played.",
         "callback": async function(message, args, serverQueue) {
@@ -575,6 +734,7 @@ var commands = [
     {
         "command": "np",
         "prettyName": "np",
+        "category": 0,
         "aliases": ["playing"],
         "desc": "Check what is currently playing on " + BOT_CONFIG.botName + ".",
         "callback": async function(message, args, serverQueue) {
@@ -633,6 +793,7 @@ var commands = [
     {
         "command": "play",
         "prettyName": "play",
+        "category": 0,
         "aliases": ["p"],
         "desc": "Play music using " + BOT_CONFIG.botName + ".",
         "callback": async function(message, args, serverQueue) {
@@ -682,6 +843,7 @@ var commands = [
     {
         "command": "dev--status",
         "prettyName": "dev--status",
+        "category": 3,
         "desc": "DEVELOPER ONLY: Prints out status of bot, along with other developer things.",
         "callback": function (message, args) {
             if (message.author.id == 490609510734364692) {
@@ -694,6 +856,7 @@ var commands = [
     {
         "command": "dev--debug",
         "prettyName": "dev--debug,",
+        "category": 3,
         "desc": "DEVELOPER ONLY: Debug commands/system setup.",
         "callback": function(message, args) {
             // whee
@@ -722,8 +885,128 @@ var commands = [
                 }
             }
         }
+    },
+    // Start of moderation commands.
+    {
+        "command": "kick",
+        "prettyName": "kick",
+        "category": 1,
+        "desc": "Kick a user from the server manually.",
+        "callback": async function(message, args) {
+            // message.member.permissions.has("KICK_MEMBERS") 
+            var leveloneperm;
+            var leveltwoperm;
+
+            leveloneperm = await hasPermission(message.guild.id, message, "1")
+            leveltwoperm = await hasPermission(message.guild.id, message, "2")
+
+            if ( leveloneperm ) {
+                // User has permission
+                kick(message)
+            } else {
+                if (leveltwoperm) {
+                    kick(message)
+                } else {
+                    SYS_FN_OUTERR("message", message, "Lack of permission.", "You must have at least permission level 1 (or permission KICK_MEMBERS) to use this command!")
+                }
+            }
+        }
+    },
+    {
+        "command": "warn",
+        "prettyName": "warn",
+        "category": 1,
+        "desc": "Warn a user",
+        "callback": function (message, args) {
+            // Do warning stuff
+            if ( message.member.permissions.has("KICK_MEMBERS") ) {
+                // User can give warns.
+                if ( message.mentions.users.first() ) {
+                    // User has been mentioned, give warn.
+
+                    var link = ""
+                    var i;
+                    var reason = ""
+        
+                    for (i = 2; i < args.length; i++) {
+                        reason = reason + args[i] + " "
+                    }
+
+                    userwarn(message, reason);
+                }
+                //
+            }
+        }
+    },
+    {
+        "command": "getwarns",
+        "prettyName": "getwarns",
+        "category": 1,
+        "desc": "Get the warns of a user.",
+        "callback": function(message,args) {
+            if ( message.member.permissions.has("KICK_MEMBERS") ) {
+                // User can give warns.
+                if ( message.mentions.users.first() ) {
+                    // OK, hand off to the big function.
+                    getwarn(message)
+                }
+            }
+        }
+    },
+    {
+        "command": "set-adminrole",
+        "category": 2,
+        "prettyName": "set-adminrole",
+        "desc": "Set the admin role for this guild.",
+        "callback": function(message,args) {
+            if (message.author.id == message.guild.ownerID) {
+                // owner.
+                if (message.mentions.roles.first()) {
+                    // role mention, compile and send away sqlite statement
+                    var updatAdmin = `UPDATE ipod_`+message.guild.id+`_config SET adminRoleID=`+message.mentions.roles.first().id
+                    sql.exec(updatAdmin)
+
+                    message.channel.send("Should be done, devcheck.")
+                }
+            }
+        }
+    } 
+]
+
+var categories = [
+    {
+        name: "music",
+        prettyName: "Music",
+        desc: "Commands for playing music."
+    },
+    {
+        name: "moderation",
+        prettyName: "Moderation",
+        desc: "Commands used for server moderation - usually requires user to have level 1/2 permission."
+    },
+    {
+        name: "admin",
+        prettyName: "administration",
+        desc: "Commands used for server administration - requires to be level 2 permission level or owner of server."
+    },
+    {
+        name: "devdebug",
+        prettyName: "Development / Debug",
+        desc: "Commands used for debugging / development of the bot. Only owner has access to this."
+    },
+    {
+        name: "utils",
+        prettyName: "Utilities",
+        desc: "Utilities that the bot has (including help and ping)."
     }
 ]
+function kick(message) {
+    message.mentions.members.first().kick().then((member) => {
+        message.channel.send(":wave: " + member.displayName + " has been successfully kicked :point_right: ");
+    }).catch(() => {
+        SYS_FN_OUTERR("message", message, "Bot lacks permission.", "I don't have the Kick Members / Administrator role. I must have this in order to kick members!")
+    });
+}
     
 SYS_FN_LOG("------------------------------------------------")
 SYS_FN_LOG("COMMAND DATABASE VERSION INFORMATION")
@@ -790,6 +1073,36 @@ client.on('message', msg => {
             }
         }
     }
+})
+
+
+
+// Event handler for joining a guild - this should initialise databases.
+client.on('guildCreate', guild => {
+    var exec_guildConfigAdd = `CREATE TABLE if not exists ipod_`+ guild.id + `_config ("moderatorRoleID"	INTEGER,"adminRoleID"	INTEGER)`
+    var exec_guildBansAdd = `CREATE TABLE if not exists ipod_` + guild.id + `_bans ("userID"	INTEGER,"reason"	TEXT)`
+    var exec_guildWarnsAdd = `CREATE TABLE if not exists ipod_` + guild.id + `_warns ("userID"	INTEGER,"warnerID"	INTEGER,"reason"	TEXT);INSERT INTO ipod_` + guild.id + `_config(moderatorRoleID, adminRoleID) VALUES(100, 200)`
+   
+    sql.exec(exec_guildConfigAdd);
+    sql.exec(exec_guildWarnsAdd);
+    sql.exec(exec_guildBansAdd);
+
+    var exec_configGuildConfig = `INSERT INTO ipod_` + guild.id + `_config(moderatorRoleID, adminRoleID) VALUES(100, 200)`
+
+    // Check if a database exists.
+    var statm = sql.prepare(`SELECT * FROM ipod_`+guild.id+`_config`)
+    var dbCheck = statm.get()
+
+    if (dbCheck === undefined) {
+        sql.exec(exec_configGuildConfig)
+    }
+
+    // Execute all statements.
+
+    // DM server owner.
+
+    guild.owner.send("Hey, I've just been added to your Discord!")
+    
 })
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
