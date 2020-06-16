@@ -85,8 +85,20 @@ const client = new Discord.Client();
 const ytdl = require("ytdl-core");
 const https = require('https');
 var search = require("youtube-search-promise");
-const SQLite = require("better-sqlite3");
-const sql = new SQLite('./master.db');
+
+/*
+const sqlite3 = require('sqlite3'); // No need for SQLite verbose.
+
+SYS_FN_LOG("Connecting to master database, this must work for the bot to start!")
+// Connecting to master database...
+let db = new sqlite3.Database('./master.db', (err) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log("CONNECTION TO MASTER DB SUCCESSFUL")
+  });
+
+*/
 
 // Embed array
 
@@ -206,26 +218,14 @@ SYS_FN_LOG("Getting command database from bot CDN and evaluating in preparation 
 
 // Initialise commands for getting data from database.
 function hasPermission(guildID, messageObject, permissionLevel) {
-    if (permissionLevel == "1") {
+    if (permissionLevel == 1) {
         console.log("Checking of moderator")
         var sqlCode = `SELECT moderatorRoleID FROM ipod_` + guildID + `_config`
-    } else if (permissionLevel == "2") {
+    } else if (permissionLevel == 2) {
         console.log("checking of admin")
         var sqlCode = `SELECT adminRoleID FROM ipod_` + guildID + `_config`
     }
 
-    var permexec = sql.prepare(sqlCode)
-    var permrun = permexec.get()
-
-    console.log(permrun)
-
-    if (permissionLevel == "1") {
-        return messageObject.member.roles.cache.some(role => parseInt(role.id) === permrun.moderatorRoleID)  
-    } else if (permissionLevel == "2") {
-        return messageObject.member.roles.cache.some(role => parseInt(role.id) === permrun.adminRoleID)
-    }
-
-/*
     var FIN_STT;
     //console.log(messageObject.member.roles.cache)
     db.get(sqlCode, [], (err, row) => {
@@ -251,7 +251,6 @@ function hasPermission(guildID, messageObject, permissionLevel) {
     });
     console.log("FIN STT" + FIN_STT)
     return FIN_STT;
-    */
 }
 
 // Lets initiate things for music-playing here, as it appears that the new CDN system doesn't like that.
@@ -402,24 +401,6 @@ function getwarn(message) {
 
     warnlist = "";
 
-    const row = sql.prepare(`SELECT warnerID,reason FROM ipod_`+message.guild.id+`_warns WHERE userID=`+message.mentions.users.first().id);
-
-    for (const test of row.iterate()) {
-        warnlist = warnlist + "**Warned by " + test.warnerID + "** - " + test.reason + "\n";
-    }
-
-    console.log(warnlist)
-
-    var okEmbed = new Discord.MessageEmbed()
-        .setColor('00ff00')
-        .setTitle('Warns for user ' + message.mentions.users.first().tag + ":")
-        .setDescription(warnlist)
-        .setAuthor('Got warns.', BOT_CONFIG.botImage)
-        .setTimestamp()
-        .setFooter('Brought to you by ' + BOT_CONFIG.botName);
-
-    message.channel.send(okEmbed);
-    /*
     db.run(`SELECT warnerID,reason FROM ipod_`+message.guild.id+`_warns WHERE userID=`+message.mentions.users.first().id, function(err, results) {
         if (err) {
           return console.log(err.message);
@@ -430,17 +411,28 @@ function getwarn(message) {
         //return warnlist;
       }, function(results) {
         console.log(results)
+        var okEmbed = new Discord.MessageEmbed()
+	        .setColor('00ff00')
+            .setTitle('Warns for user ' + message.mentions.users.first().tag + ":")
+            .setDescription(warnlist)
+	        .setAuthor('Got warns.', BOT_CONFIG.botImage)
+	        .setTimestamp()
+            .setFooter('Brought to you by ' + BOT_CONFIG.botName);
 
+        message.channel.send(okEmbed);
 
       });
-      */
 }
 
 function userwarn(message, reason) {
-    var statement = sql.prepare(`INSERT INTO ipod_` + message.guild.id + `_warns(userID, warnerID, reason) VALUES(?,?,?)`)
-    var executed = statement.run(message.mentions.users.first().id, message.author.id, reason)
-
-    var warnEmbed = new Discord.MessageEmbed()
+    db.run(`INSERT INTO ipod_` + message.guild.id + `_warns(userID, warnerID, reason) VALUES(?,?,?)`, [message.mentions.users.first().id, message.author.id, reason], function(err) {
+        if (err) {
+          return console.log(err.message);
+        }
+        // get the last insert id
+        console.log(`A row has been inserted with rowid ${this.lastID}`);
+      }, function() {
+        var warnEmbed = new Discord.MessageEmbed()
 	        .setColor('ff0000')
 	        .setTitle("Notice of manual punishment")
 	        .setAuthor('You were warned in ' + message.guild.name + ' by ' + message.author.tag + '.', BOT_CONFIG.botImage)
@@ -457,6 +449,8 @@ function userwarn(message, reason) {
 
         message.mentions.users.first().send(warnEmbed)
         message.channel.send(okEmbed);
+
+      });
 
 }
 
@@ -537,13 +531,34 @@ function play(guild, song) {
      serverQueue.textChannel.send(playingEmbed);
 }
 
+SYS_FN_LOG("Initialising secondary library for giveaways...")
+
+const ms = require("ms");
+
+// Requires Manager from discord-giveaways
+const { GiveawaysManager } = require("discord-giveaways");
+// Starts updating currents giveaways
+const manager = new GiveawaysManager(client, {
+    storage: "./giveaways.json",
+    updateCountdownEvery: 10000,
+    default: {
+        botsCanWin: false,
+        exemptPermissions: [ "MANAGE_MESSAGES", "ADMINISTRATOR" ],
+        embedColor: "#FF0000",
+        reaction: "🎉"
+    }
+});
+
+// We now have a giveawaysManager property to access the manager everywhere!
+client.giveawaysManager = manager;
+
 // Manky!
 SYS_FN_LOG("Loading entire command database...")
 var commands = [
     {
         "command": "ping",
         "prettyName": "ping",
-        "category": 4,
+        "category": 2,
         "desc": "Returns a response when " + BOT_CONFIG.botName + " receives the command.",
         "callback": function (message, Arguments) {
             message.reply("This is a responce, therefore the command was received.")
@@ -552,7 +567,7 @@ var commands = [
 	{
 		"command": "help",
         "prettyName": "help",
-        "category": 4,
+        "category": 2,
 		"aliases": ["h"],
 		"desc": "Returns helpful information about " + BOT_CONFIG.botName,
 		"callback": function(MesgElement, Args) {
@@ -843,7 +858,7 @@ var commands = [
     {
         "command": "dev--status",
         "prettyName": "dev--status",
-        "category": 3,
+        "category": 1,
         "desc": "DEVELOPER ONLY: Prints out status of bot, along with other developer things.",
         "callback": function (message, args) {
             if (message.author.id == 490609510734364692) {
@@ -856,7 +871,7 @@ var commands = [
     {
         "command": "dev--debug",
         "prettyName": "dev--debug,",
-        "category": 3,
+        "category": 1,
         "desc": "DEVELOPER ONLY: Debug commands/system setup.",
         "callback": function(message, args) {
             // whee
@@ -886,91 +901,79 @@ var commands = [
             }
         }
     },
-    // Start of moderation commands.
+    // Giveaway
     {
-        "command": "kick",
-        "prettyName": "kick",
-        "category": 1,
-        "desc": "Kick a user from the server manually.",
-        "callback": async function(message, args) {
-            // message.member.permissions.has("KICK_MEMBERS") 
-            var leveloneperm;
-            var leveltwoperm;
-
-            leveloneperm = await hasPermission(message.guild.id, message, "1")
-            leveltwoperm = await hasPermission(message.guild.id, message, "2")
-
-            if ( leveloneperm ) {
-                // User has permission
-                kick(message)
-            } else {
-                if (leveltwoperm) {
-                    kick(message)
-                } else {
-                    SYS_FN_OUTERR("message", message, "Lack of permission.", "You must have at least permission level 1 (or permission KICK_MEMBERS) to use this command!")
-                }
-            }
-        }
-    },
-    {
-        "command": "warn",
-        "prettyName": "warn",
-        "category": 1,
-        "desc": "Warn a user",
-        "callback": function (message, args) {
-            // Do warning stuff
-            if ( message.member.permissions.has("KICK_MEMBERS") ) {
-                // User can give warns.
-                if ( message.mentions.users.first() ) {
-                    // User has been mentioned, give warn.
-
-                    var link = ""
-                    var i;
-                    var reason = ""
-        
-                    for (i = 2; i < args.length; i++) {
-                        reason = reason + args[i] + " "
-                    }
-
-                    userwarn(message, reason);
-                }
-                //
-            }
-        }
-    },
-    {
-        "command": "getwarns",
-        "prettyName": "getwarns",
-        "category": 1,
-        "desc": "Get the warns of a user.",
-        "callback": function(message,args) {
-            if ( message.member.permissions.has("KICK_MEMBERS") ) {
-                // User can give warns.
-                if ( message.mentions.users.first() ) {
-                    // OK, hand off to the big function.
-                    getwarn(message)
-                }
-            }
-        }
-    },
-    {
-        "command": "set-adminrole",
-        "category": 2,
-        "prettyName": "set-adminrole",
-        "desc": "Set the admin role for this guild.",
-        "callback": function(message,args) {
+        "command": "gw-start",
+        "prettyName": "gw-start",
+        "category": 3,
+        "desc": "Start a giveaway.",
+        "callback": function(message, args) {
+            const gArgs = message.content.slice(BOT_CONFIG.prefix.length).trim().split(/ +/g)
             if (message.author.id == message.guild.ownerID) {
-                // owner.
-                if (message.mentions.roles.first()) {
-                    // role mention, compile and send away sqlite statement
-                    var updatAdmin = `UPDATE ipod_`+message.guild.id+`_config SET adminRoleID=`+message.mentions.roles.first().id
-                    sql.exec(updatAdmin)
+                client.giveawaysManager.start(message.channel, {
+                    time: ms(args[1]),
+                    prize: args.slice(3).join(" "),
+                    winnerCount: parseInt(args[2]),
+                    messages: {
+                        giveaway: "\n\n🎉🎉 **GIVEAWAY** 🎉🎉",
+                        giveawayEnded: "\n\n🎉🎉 **GIVEAWAY ENDED** 🎉🎉",
+                        timeRemaining: "Time remaining: **{duration}**!",
+                        inviteToParticipate: "React with 🎉 to participate!",
+                        winMessage: "Congratulations, {winners}! You won **{prize}**!",
+                        embedFooter: "Giveaways",
+                        noWinner: "Giveaway cancelled, no valid participations.",
+                        hostedBy: "Hosted by: {user}",
+                        winners: "winner(s)",
+                        endedAt: "Ended at",
+                        units: {
+                            seconds: "seconds",
+                            minutes: "minutes",
+                            hours: "hours",
+                            days: "days",
+                            pluralS: false // Not needed, because units end with a S so it will automatically removed if the unit value is lower than 2
+                        }
+                    }
+                }).then((gData) => {
+                    console.log(gData); // {...} (messageid, end date and more)
+                });
+            }
 
-                    message.channel.send("Should be done, devcheck.")
-                }
+            // And the giveaway has started!
+        }
+    },
+    {
+        "command": "gw-reroll",
+        "prettyName": "gw-reroll",
+        "category": 3,
+        "desc": "Rerolls a giveaway, given a message ID.",
+        "callback": function(message, args) {
+            let messageID = args[1];
+
+            if (message.author.id == message.guild.ownerID) {
+                client.giveawaysManager.reroll(messageID).then(() => {
+                    message.channel.send("Success! Giveaway rerolled!");
+                }).catch((err) => {
+                    message.channel.send("No giveaway found for "+messageID+", please check and try again");
+                });
             }
         }
-    } 
+    },
+    {
+        "command": "gw-delete",
+        "prettyName": "gw-delete",
+        "category": 3,
+        "desc": "Deletes a giveaway, given a message ID.",
+        "callback": function(message, args) {
+            let messageID = args[1];
+            if (message.author.id == message.guild.ownerID) {
+                client.giveawaysManager.delete(messageID).then(() => {
+                    message.channel.send("Success! Giveaway deleted!");
+                }).catch((err) => {
+                    message.channel.send("No giveaway found for "+messageID+", please check and try again");
+                });
+            }
+        }
+    }
 ]
 
 var categories = [
@@ -978,16 +981,6 @@ var categories = [
         name: "music",
         prettyName: "Music",
         desc: "Commands for playing music."
-    },
-    {
-        name: "moderation",
-        prettyName: "Moderation",
-        desc: "Commands used for server moderation - usually requires user to have level 1/2 permission."
-    },
-    {
-        name: "admin",
-        prettyName: "administration",
-        desc: "Commands used for server administration - requires to be level 2 permission level or owner of server."
     },
     {
         name: "devdebug",
@@ -998,8 +991,14 @@ var categories = [
         name: "utils",
         prettyName: "Utilities",
         desc: "Utilities that the bot has (including help and ping)."
+    },
+    {
+        name: "giveaways",
+        prettyName: "Giveaways",
+        desc: "Commands that interface with the giveaways system of the bot."
     }
 ]
+
 function kick(message) {
     message.mentions.members.first().kick().then((member) => {
         message.channel.send(":wave: " + member.displayName + " has been successfully kicked :point_right: ");
@@ -1079,31 +1078,58 @@ client.on('message', msg => {
 
 // Event handler for joining a guild - this should initialise databases.
 client.on('guildCreate', guild => {
-    var exec_guildConfigAdd = `CREATE TABLE if not exists ipod_`+ guild.id + `_config ("moderatorRoleID"	INTEGER,"adminRoleID"	INTEGER)`
-    var exec_guildBansAdd = `CREATE TABLE if not exists ipod_` + guild.id + `_bans ("userID"	INTEGER,"reason"	TEXT)`
-    var exec_guildWarnsAdd = `CREATE TABLE if not exists ipod_` + guild.id + `_warns ("userID"	INTEGER,"warnerID"	INTEGER,"reason"	TEXT);INSERT INTO ipod_` + guild.id + `_config(moderatorRoleID, adminRoleID) VALUES(100, 200)`
-   
-    sql.exec(exec_guildConfigAdd);
-    sql.exec(exec_guildWarnsAdd);
-    sql.exec(exec_guildBansAdd);
+    /* DISABLED CAUSE BIG BAD
 
-    var exec_configGuildConfig = `INSERT INTO ipod_` + guild.id + `_config(moderatorRoleID, adminRoleID) VALUES(100, 200)`
+    // Initialise database for servers - any errors are fine, just means they've been here before.
+    db.run(`CREATE TABLE ipod_` + guild.id + `_bans (
+            "userID"	INTEGER,
+            "reason"	TEXT
+          )`, function(err) {
+              if (err) {
+                  console.log("probably already exists.")
+              }
+          });
 
-    // Check if a database exists.
-    var statm = sql.prepare(`SELECT * FROM ipod_`+guild.id+`_config`)
-    var dbCheck = statm.get()
+    db.run(`CREATE TABLE ipod_` + guild.id + `_warns (
+                "userID"	INTEGER,
+                "warnerID"	INTEGER,
+                "reason"	TEXT
+          )`, function(err) {
+            if (err) {
+                console.log("probably already exists.")
+            }
+        });
+    
+    db.run(`CREATE TABLE  ipod_`+ guild.id + `_config (
+                "moderatorRoleID"	INTEGER,
+                "adminRoleID"	INTEGER
+          )`, function(err) {
+            if (err) {
+                console.log("probably already exists.")
+            }
+            db.run(`INSERT INTO ipod_` + guild.id + `_config(moderatorRoleID, adminRoleID) VALUES(?, ?)`, [100,200])
+        });
+    
 
-    if (dbCheck === undefined) {
-        sql.exec(exec_configGuildConfig)
-    }
-
-    // Execute all statements.
-
+    */
+    
     // DM server owner.
 
     guild.owner.send("Hey, I've just been added to your Discord!")
     
 })
+
+// Initiate stuff for bredo's monitoring.
+function monitorCheck() {
+    // Dostuff
+    var channel = client.channels.cache.get(`722579432942075904`)
+
+    channel.send("This is a 10 second monitoring check. This should not actually send every 10 seconds but will when the server poops.")
+    
+
+}
+
+//setInterval(monitorCheck, 10 * 1000)
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
 client.login(DISCORD_TOKEN)
