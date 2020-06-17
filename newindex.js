@@ -1143,7 +1143,9 @@ function monitorCheck() {
             }
         } else {
             //console.log('CPU Usage is normal again.')
-            bredoAlerted = false
+	    if ( bredoAlerted ) {
+            	bredoAlerted = false
+	    }
         }
     });
 }
