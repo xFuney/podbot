@@ -1139,7 +1139,8 @@ function monitorCheck() {
             if ((!ownerAlerted) && (cpuWarning)) {
                 SYS_FN_LOG('[MON] High CPU usage has lasted over ' + intervalSeconds + 'seconds, alerting owner')
                 channel.send('<@' + ownerID + '>, CPU usage has been above threshold of ' + cpuThreshold + '% for more then ' + intervalSeconds + 'seconds (currently at ' + currCpuUsage + '%)')
-            } else if (!cpuWarning) {
+                ownerAlerted = true
+            } else if (!cpuWarning && !ownerAlerted) {
                 SYS_FN_LOG('[MON] High CPU usage detected')
                 cpuWarning = true
             } else {
