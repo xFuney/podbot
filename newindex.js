@@ -1123,6 +1123,8 @@ const os = require('os-utils');
 
 const cpuThreshold = 75
 
+var bredoAlerted = false
+
 // Initiate stuff for bredo's monitoring.
 function monitorCheck() {
     // Dostuff
@@ -1131,16 +1133,20 @@ function monitorCheck() {
     os.cpuUsage(function(v){
 
         let currCpuUsage = v
-
         currCpuUsage = Math.round(currCpuUsage * 100)
 
         if (parseInt(currCpuUsage) > cpuThreshold) {
-            channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%')
+            if (!bredoAlerted) {
+                console.log('CPU Usage is high. Alerting bredo')
+                channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%)')
+                bredoAlerted = true
+            } else {
+                console.log('CPU Usage is high, bredo already alerted.')
+            }
+        } else {
+            bredoAlerted = false
         }
-
     });
-
-
 }
 
 setInterval(monitorCheck, 10 * 1000)
