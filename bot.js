@@ -64,4 +64,4 @@ client.on('message', msg => {
 })
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
-client.login(DISCORD_TOKEN_DEV)
+client.login(DISCORD_TOKEN)
