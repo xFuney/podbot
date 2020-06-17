@@ -1122,35 +1122,40 @@ client.on('guildCreate', guild => {
 
 // CPU Monitoring
 const os = require('os-utils');
-const cpuThreshold = 25
-var bredoAlerted = false
+
+const cpuThreshold = 25 // Threshold (in %) to trigger at
+const intervalSeconds = 5 // Time between checks
+const ownerID = '205419202318696448' // User ID of owner
+const channelID = '722579432942075904' // ID of channel for alert messages to be sent in
+
+let cpuWarning = false
+let ownerAlerted = false
 
 function monitorCheck() {
-    var channel = client.channels.cache.get(`722579432942075904`)
-
-    os.cpuUsage(function(v){
-
-        let currCpuUsage = v
-        currCpuUsage = Math.round(currCpuUsage * 100)
-
+    let channel = client.channels.cache.get(channelID)
+    os.cpuUsage(function(v) {
+        let currCpuUsage = Math.round(v * 100)
         if (parseInt(currCpuUsage) > cpuThreshold) {
-            if (!bredoAlerted) {
-                SYS_FN_LOG('[MON] CPU Usage is high. Alerting bredo')
-                channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%)')
-                bredoAlerted = true
+            if ((!ownerAlerted) && (cpuWarning)) {
+                SYS_FN_LOG('[MON] High CPU usage has lasted over ' + intervalSeconds + 'seconds, alerting owner')
+                channel.send('<@' + ownerID + '>, CPU usage has been above threshold of ' + cpuThreshold + '% for more then ' + intervalSeconds + 'seconds (currently at ' + currCpuUsage + '%)')
+            } else if (!cpuWarning) {
+                SYS_FN_LOG('[MON] High CPU usage detected')
+                cpuWarning = true
             } else {
-                SYS_FN_LOG('[MON] CPU Usage is high, bredo already alerted.')
+                SYS_FN_LOG('[MON] CPU usage is still high, owner has been alerted')
             }
         } else {
-            //console.log('CPU Usage is normal again.')
-	    if ( bredoAlerted ) {
-            	bredoAlerted = false
-	    }
+            if (cpuWarning || ownerAlerted) {
+                SYS_FN_LOG('[MON] CPU usage has returned to normal')
+                cpuWarning = false
+                ownerAlerted = false
+            }
         }
     });
 }
 
-setInterval(monitorCheck, 5 * 1000)
+setInterval(monitorCheck, intervalSeconds * 1000)
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
 client.login(DISCORD_TOKEN)
