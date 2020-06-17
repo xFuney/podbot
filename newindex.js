@@ -1119,17 +1119,36 @@ client.on('guildCreate', guild => {
     
 })
 
-// Initiate stuff for bredo's monitoring.
+
+// CPU Monitoring
+const os = require('os-utils');
+const cpuThreshold = 25
+var bredoAlerted = false
+
 function monitorCheck() {
-    // Dostuff
     var channel = client.channels.cache.get(`722579432942075904`)
 
-    channel.send("This is a 10 second monitoring check. This should not actually send every 10 seconds but will when the server poops.")
-    
+    os.cpuUsage(function(v){
 
+        let currCpuUsage = v
+        currCpuUsage = Math.round(currCpuUsage * 100)
+
+        if (parseInt(currCpuUsage) > cpuThreshold) {
+            if (!bredoAlerted) {
+                console.log('CPU Usage is high. Alerting bredo')
+                channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%)')
+                bredoAlerted = true
+            } else {
+                console.log('CPU Usage is high, bredo already alerted.')
+            }
+        } else {
+            console.log('CPU Usage is normal again.')
+            bredoAlerted = false
+        }
+    });
 }
 
-//setInterval(monitorCheck, 10 * 1000)
+setInterval(monitorCheck, 5 * 1000)
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
 client.login(DISCORD_TOKEN)
