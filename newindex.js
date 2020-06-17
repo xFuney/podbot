@@ -1135,14 +1135,14 @@ function monitorCheck() {
 
         if (parseInt(currCpuUsage) > cpuThreshold) {
             if (!bredoAlerted) {
-                console.log('CPU Usage is high. Alerting bredo')
+                SYS_FN_LOG('[MON] CPU Usage is high. Alerting bredo')
                 channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%)')
                 bredoAlerted = true
             } else {
-                console.log('CPU Usage is high, bredo already alerted.')
+                SYS_FN_LOG('[MON] CPU Usage is high, bredo already alerted.')
             }
         } else {
-            console.log('CPU Usage is normal again.')
+            //console.log('CPU Usage is normal again.')
             bredoAlerted = false
         }
     });
