@@ -1132,7 +1132,7 @@ function monitorCheck() {
         currentCpuUsage = v
     });
 
-    channel.send(v)
+    channel.send(currentCpuUsage)
     
 
 }
