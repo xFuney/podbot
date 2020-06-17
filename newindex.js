@@ -1119,20 +1119,28 @@ client.on('guildCreate', guild => {
     
 })
 
+import os from 'os-utils';
+
 // Initiate stuff for bredo's monitoring.
 function monitorCheck() {
     // Dostuff
     var channel = client.channels.cache.get(`722579432942075904`)
 
-    channel.send("This is a 10 second monitoring check. This should not actually send every 10 seconds but will when the server poops.")
+    var currentCpuUsage = ''
+
+    os.cpuUsage(function(v){
+        currentCpuUsage = v
+    });
+
+    channel.send(v)
     
 
 }
 
-//setInterval(monitorCheck, 10 * 1000)
+setInterval(monitorCheck, 10 * 1000)
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
-client.login(DISCORD_TOKEN)
+client.login(DISCORD_TOKEN_DEV)
 
         
 SYS_FN_LOG("------------------------------------------------")
