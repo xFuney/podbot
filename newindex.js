@@ -1140,7 +1140,7 @@ function monitorCheck() {
 setInterval(monitorCheck, 10 * 1000)
 
 SYS_FN_LOG("Logging in to the Discord network with provided token.")
-client.login(DISCORD_TOKEN_DEV)
+client.login(DISCORD_TOKEN)
 
         
 SYS_FN_LOG("------------------------------------------------")
