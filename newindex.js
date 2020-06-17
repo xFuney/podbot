@@ -1132,6 +1132,7 @@ function monitorCheck() {
         currentCpuUsage = v
     });
 
+    console.log("will this fail?")
     channel.send(currentCpuUsage)
     
 
