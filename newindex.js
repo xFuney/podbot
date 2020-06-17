@@ -1135,7 +1135,7 @@ function monitorCheck() {
     let channel = client.channels.cache.get(channelID)
     os.cpuUsage(function(v) {
         let currCpuUsage = Math.round(v * 100)
-        if (parseInt(currCpuUsage) > cpuThreshold) {
+        if (currCpuUsage > cpuThreshold) {
             if ((!ownerAlerted) && (cpuWarning)) {
                 SYS_FN_LOG('[MON] High CPU usage has lasted over ' + intervalSeconds + 'seconds, alerting owner')
                 channel.send('<@' + ownerID + '>, CPU usage has been above threshold of ' + cpuThreshold + '% for more then ' + intervalSeconds + 'seconds (currently at ' + currCpuUsage + '%)')
