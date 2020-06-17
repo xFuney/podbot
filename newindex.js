@@ -152,7 +152,7 @@ const antiSpam = new AntiSpam({
 // Get keys and such from environment variables.
 SYS_FN_LOG("Getting YouTube key and Discord token from system environment variables.")
 const KEY_YT = process.env.KEY_YT
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN_DEV
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN
 
 // Initialise tokens for YouTube Searching
 SYS_FN_LOG("Parsing YouTube key as a program-readable variable.")
