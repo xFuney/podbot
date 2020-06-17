@@ -1126,16 +1126,10 @@ function monitorCheck() {
     // Dostuff
     var channel = client.channels.cache.get(`722579432942075904`)
 
-    var currentCpuUsage = ''
-
     os.cpuUsage(function(v){
-        currentCpuUsage = v;
+        channel.send(v)
     });
 
-    console.log("will this fail?")
-    console.log(currentCpuUsage)
-    channel.send(currentCpuUsage)
-    
 
 }
 
