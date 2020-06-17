@@ -1129,10 +1129,11 @@ function monitorCheck() {
     var currentCpuUsage = ''
 
     os.cpuUsage(function(v){
-        currentCpuUsage = v
+        currentCpuUsage = v;
     });
 
     console.log("will this fail?")
+    console.log(currentCpuUsage)
     channel.send(currentCpuUsage)
     
 
