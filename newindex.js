@@ -1140,6 +1140,7 @@ function monitorCheck() {
                 SYS_FN_LOG('[MON] High CPU usage has lasted over ' + intervalSeconds + 'seconds, alerting owner')
                 console.log('alertSend')
                 channel.send('<@' + ownerID + '>, CPU usage has been above threshold of ' + cpuThreshold + '% for more then ' + intervalSeconds + 'seconds (currently at ' + currCpuUsage + '%)')
+                ownerAlerted = true
             } else if (!cpuWarning && !ownerAlerted) {
                 SYS_FN_LOG('[MON] High CPU usage detected')
                 console.log('highCpuInitial')
