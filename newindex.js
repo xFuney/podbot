@@ -1121,13 +1121,23 @@ client.on('guildCreate', guild => {
 
 const os = require('os-utils');
 
+const cpuThreshold = 75
+
 // Initiate stuff for bredo's monitoring.
 function monitorCheck() {
     // Dostuff
     var channel = client.channels.cache.get(`722579432942075904`)
 
     os.cpuUsage(function(v){
-        channel.send(v)
+
+        let currCpuUsage = v
+
+        currCpuUsage = Math.round(currCpuUsage * 100)
+
+        if (parseInt(currCpuUsage) > cpuThreshold) {
+            channel.send('<@205419202318696448> CPU Usage is above threshold of ' + cpuThreshold + '% (currently at ' + currCpuUsage + '%')
+        }
+
     });
 
 
