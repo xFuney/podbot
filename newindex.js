@@ -1119,7 +1119,7 @@ client.on('guildCreate', guild => {
     
 })
 
-import os from 'os-utils';
+const os = require('os-utils');
 
 // Initiate stuff for bredo's monitoring.
 function monitorCheck() {
