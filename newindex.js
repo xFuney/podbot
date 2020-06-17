@@ -152,7 +152,7 @@ const antiSpam = new AntiSpam({
 // Get keys and such from environment variables.
 SYS_FN_LOG("Getting YouTube key and Discord token from system environment variables.")
 const KEY_YT = process.env.KEY_YT
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN_DEV
 
 // Initialise tokens for YouTube Searching
 SYS_FN_LOG("Parsing YouTube key as a program-readable variable.")
@@ -1138,16 +1138,20 @@ function monitorCheck() {
         if (currCpuUsage > cpuThreshold) {
             if ((!ownerAlerted) && (cpuWarning)) {
                 SYS_FN_LOG('[MON] High CPU usage has lasted over ' + intervalSeconds + 'seconds, alerting owner')
+                console.log('alertSend')
                 channel.send('<@' + ownerID + '>, CPU usage has been above threshold of ' + cpuThreshold + '% for more then ' + intervalSeconds + 'seconds (currently at ' + currCpuUsage + '%)')
-            } else if (!cpuWarning) {
+            } else if (!cpuWarning && !ownerAlerted) {
                 SYS_FN_LOG('[MON] High CPU usage detected')
+                console.log('highCpuInitial')
                 cpuWarning = true
             } else {
                 SYS_FN_LOG('[MON] CPU usage is still high, owner has been alerted')
+                console.log('cpuStillHigh')
             }
         } else {
             if (cpuWarning || ownerAlerted) {
                 SYS_FN_LOG('[MON] CPU usage has returned to normal')
+                console.log('norm')
                 cpuWarning = false
                 ownerAlerted = false
             }
